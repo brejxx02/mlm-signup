@@ -1,46 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Brajesh Network Signup</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRAJESH NETWORK</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-  body{background:#0f1320;color:#fff;font-family:sans-serif;padding:20px;}
-  .box{max-width:420px;margin:auto;background:#1d2233;padding:20px;border-radius:10px;}
-  input,button{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:none;}
-  input{background:#2b3045;color:#fff;}
-  button{background:#ffb454;font-weight:bold;}
-  .msg{margin-top:10px;color:#7dffb0;}
-  .err{margin-top:10px;color:#ff6b6b;}
+body{font-family:Arial;background:#f2f2f2;padding:20px;}
+.box{background:white;padding:20px;border-radius:10px;max-width:400px;margin:auto;}
+input{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #aaa;}
+button{width:100%;padding:10px;background:#007bff;color:white;font-size:16px;
+border:none;border-radius:6px;margin-top:10px;}
+button:hover{opacity:.8}
 </style>
 </head>
+
 <body>
 
-<div class="box">
-  <h2>🔥 Brajesh Network Signup</h2>
-
-  <input id="name" placeholder="Full Name">
-  <input id="email" placeholder="Email">
-  <input id="mobile" placeholder="Mobile Number">
-  <input id="sponsor" placeholder="Sponsor Code (optional)">
-  <button onclick="signup()">Nice Continue</button>
-
-  <p id="msg" class="msg"></p>
-  <p id="err" class="err"></p>
+<div class="box" id="signupBox">
+<h2>Create Account</h2>
+<input id="name" placeholder="Full Name">
+<input id="email" placeholder="Email">
+<input id="mobile" placeholder="Mobile Number">
+<input id="password" type="password" placeholder="Password">
+<input id="sponsor" placeholder="Sponsor Code (required)">
+<button onclick="signup()">Sign Up</button>
+<p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
 </div>
 
+<div class="box" id="loginBox" style="display:none;">
+<h2>Login</h2>
+<input id="emailLogin" placeholder="Email">
+<input id="passwordLogin" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<p>Don't have account? <a href="#" onclick="showSignup()">Create New</a></p>
+</div>
 
-
-<!-- ================= FIREBASE SETUP (tumne diya woh hi use) ================= -->
 <script type="module">
-
-import { initializeApp } 
-  from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
+from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 import { getFirestore, doc, setDoc } 
-  from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword } 
-  from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyATpuhDoP366I8e7XPcuphtfVdN0ucz69w",
@@ -51,42 +51,52 @@ const firebaseConfig = {
     appId: "1:1053315949596:web:7bbe45427cf6f29520abd9"
 };
 
-// Start Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-
-
-// ================= SIGNUP FUNCTION =================
 async function signup(){
-    const name=document.getElementById("name").value;
-    const email=document.getElementById("email").value;
-    const mobile=document.getElementById("mobile").value;
-    const sponsor=document.getElementById("sponsor").value;
+ let name = document.getElementById("name").value;
+ let email = document.getElementById("email").value;
+ let mobile = document.getElementById("mobile").value;
+ let password = document.getElementById("password").value;
+ let sponsor = document.getElementById("sponsor").value;
 
-    msg.innerHTML=""; err.innerHTML="";
+ if(!name || !email || !mobile || !password || !sponsor){
+    alert("All fields required!");
+    return;
+ }
 
-    if(!name||!email||!mobile){err.innerHTML="Fill required fields";return;}
-
-    try{
-        const user=await createUserWithEmailAndPassword(auth,email,"TempPass@123");
-        const uid=user.user.uid;
-        const referral = Math.random().toString(36).substring(2,8).toUpperCase();
-
-        await setDoc(doc(db,"users",uid),{
-          name,email,mobile,
-          sponsor:sponsor||null,
-          referralCode:referral,
-          wallet:0,
-          levelBonus:{1:0,2:0,3:0,4:0},
-          joinedAt: new Date()
-        });
-
-        msg.innerHTML="Signup success! Your referral code: "+referral;
-
-    }catch(e){ err.innerHTML=e.message;}
+ createUserWithEmailAndPassword(auth, email, password)
+ .then(async(user)=>{
+   await setDoc(doc(db,"users", user.user.uid),{
+     name,email,mobile,sponsor,
+     joined:false,
+     wallet:0,
+     level1:0,level2:0,level3:0,level4:0,
+     referLink:"https://mlm-signup.netlify.app/?ref="+user.user.uid
+   });
+   alert("Signup Successful! Now Login");
+   showLogin();
+ })
+ .catch(e=>alert(e.message));
 }
+
+function login(){
+ let email = document.getElementById("emailLogin").value;
+ let password = document.getElementById("passwordLogin").value;
+
+ signInWithEmailAndPassword(auth, email, password)
+ .then(()=>{
+   alert("Login Success!");
+   window.location.href="dashboard.html";
+ })
+ .catch(e=>alert(e.message));
+}
+
+function showLogin(){signupBox.style.display="none";loginBox.style.display="block";}
+function showSignup(){signupBox.style.display="block";loginBox.style.display="none";}
 </script>
+
 </body>
 </html>
