@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>BRAJESH NETWORK Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:Arial;background:#f2f2f2;padding:20px;}
+.box{background:white;padding:20px;border-radius:10px;max-width:500px;margin:auto;margin-top:20px;}
+button{padding:10px;background:#28a745;color:white;border:none;border-radius:6px;width:100%;font-size:16px;}
+button:hover{opacity:.8;}
+h2,h3{margin:10px 0;}
+p{margin:5px 0;}
+</style>
+</head>
+<body>
+
+<div class="box">
+<h2>Welcome, <span id="userName">User</span></h2>
+<p>Wallet Balance: <span id="wallet">0 USDT</span></p>
+<button onclick="joinPlan()">Join 10 USDT Plan</button>
+<h3>Your Team:</h3>
+<ul id="teamList"></ul>
+<h3>Your Referral Link:</h3>
+<p id="refLink"></p>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyATpuhDoP366I8e7XPcuphtfVdN0ucz69w",
+    authDomain: "brajeshnetwork-f21c8.firebaseapp.com",
+    projectId: "brajeshnetwork-f21c8",
+    storageBucket: "brajeshnetwork-f21c8.firebasestorage.app",
+    messagingSenderId: "1053315949596",
+    appId: "1:1053315949596:web:7bbe45427cf6f29520abd9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+onAuthStateChanged(auth, async(user)=>{
+ if(user){
+   const docRef = doc(db,"users",user.uid);
+   const docSnap = await getDoc(docRef);
+   if(docSnap.exists()){
+     const data = docSnap.data();
+     document.getElementById("userName").innerText = data.name;
+     document.getElementById("wallet").innerText = data.wallet + " USDT";
+     document.getElementById("refLink").innerText = data.referLink;
+
+     // Load Team Members
+     const q = query(collection(db,"users"),where("sponsor","==",user.uid));
+     const querySnapshot = await getDocs(q);
+     const teamList = document.getElementById("teamList");
+     teamList.innerHTML = "";
+     querySnapshot.forEach(doc=>{
+       const li = document.createElement("li");
+       li.innerText = doc.data().name + " (" + doc.data().email + ")";
+       teamList.appendChild(li);
+     });
+   }
+ }else{
+   alert("Please login first!");
+   window.location.href="index.html";
+ }
+});
+
+async function joinPlan(){
+ const user = auth.currentUser;
+ if(!user){alert("Login first!");return;}
+ const docRef = doc(db,"users",user.uid);
+ const docSnap = await getDoc(docRef);
+ if(docSnap.exists()){
+   const data = docSnap.data();
+   if(data.joined){
+     alert("Already joined the plan!");
+     return;
+   }
+   await updateDoc(docRef,{joined:true,wallet: data.wallet + 10});
+   alert("Joined 10 USDT plan successfully! Wallet updated.");
+   document.getElementById("wallet").innerText = data.wallet + 10 + " USDT";
+ }
+}
+</script>
+
+</body>
+</html>
