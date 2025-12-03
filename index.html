@@ -1,62 +1,115 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>MLM Signup</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <title>Brajesh Network Signup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+  body{font-family:Arial;background:#111;color:#fff;text-align:center;padding:20px;}
+  .box{background:#1d1d1d;padding:20px;border-radius:10px;max-width:350px;margin:auto;}
+  input{width:90%;padding:10px;margin:6px;border-radius:5px;border:none;}
+  button{background:#ff9800;color:#000;padding:12px;border:none;width:95%;
+      border-radius:6px;font-size:18px;font-weight:bold;margin-top:10px;}
+  #msg{margin-top:10px;font-size:15px;color:#00ff90;}
+</style>
 </head>
+
 <body>
-  <h2>MLM Signup Form</h2>
+
+<h2>🔥 Brajesh Network Signup</h2>
+
+<div class="box">
   <form id="signupForm">
-    <input type="text" id="name" placeholder="Full Name" required><br>
-    <input type="email" id="email" placeholder="Email" required><br>
-    <input type="text" id="mobile" placeholder="Mobile" required><br>
-    <input type="text" id="sponsor" placeholder="Sponsor ID"><br>
-    <button type="submit">Sign Up</button>
+    <input id="name" type="text" placeholder="Full Name" required>
+    <input id="email" type="email" placeholder="Email Address" required>
+    <input id="mobile" type="text" placeholder="Mobile Number" required>
+    <input id="sponsor" type="text" placeholder="Sponsor Referral Code (Optional)">
+    <button type="submit">Nice Continue</button>
   </form>
 
   <p id="msg"></p>
+</div>
 
-  <script>
-    // 🔹 Firebase Config (Tumhare Project ke hisab se replace karo)
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "SENDER_ID",
-      appId: "APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+<!--  Firebase SDK CDN  -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
-    // 🔹 Form Submit
-    document.getElementById("signupForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = document.getElementById("name").value;
-      const email = document.getElementById("email").value;
-      const mobile = document.getElementById("mobile").value;
-      const sponsor = document.getElementById("sponsor").value;
+<script>
+  // Your Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyATpuhDoP366I8e7XPcuphtfVdN0ucz69w",
+    authDomain: "brajeshnetwork-f21c8.firebaseapp.com",
+    projectId: "brajeshnetwork-f21c8",
+    storageBucket: "brajeshnetwork-f21c8.firebasestorage.app",
+    messagingSenderId: "1053315949596",
+    appId: "1:1053315949596:web:7bbe45427cf6f29520abd9"
+  };
 
-      try {
-        // Create User Auth
-        const userCred = await auth.createUserWithEmailAndPassword(email, "123456"); // default password
-        const uid = userCred.user.uid;
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-        // Save User Data in Firestore
-        await db.collection("users").doc(uid).set({
-          name, email, mobile, sponsor, uid, joinDate: new Date().toISOString()
-        });
 
-        document.getElementById("msg").innerText = "Signup Successful! Your UID: " + uid;
-        document.getElementById("signupForm").reset();
-      } catch (err) {
-        document.getElementById("msg").innerText = "Error: " + err.message;
-      }
-    });
-  </script>
+  // 🎉 Signup + Referral + Level Bonus
+  document.getElementById("signupForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    
+    const name = nameInput.value;
+    const email = emailInput.value;
+    const mobile = mobileInput.value;
+    const sponsor = sponsorInput.value;
+
+    try{
+      // Create user (password auto fixed 123456)
+      let user = await auth.createUserWithEmailAndPassword(email,"123456");
+      let uid = user.user.uid;
+
+      // Generate referral code
+      let refCode = generateCode();
+
+      // Save user to DB
+      await db.collection("users").doc(uid).set({
+        name,email,mobile,sponsor,refCode,uid,
+        levelBonus:{1:0,2:0,3:0,4:0},
+        joined:new Date()
+      });
+
+      // Bonus distribution
+      if(sponsor) await giveBonus(sponsor);
+
+      msg.innerText="Signup Success! Your Referral Code: "+refCode;
+      signupForm.reset();
+
+    }catch(e){
+      msg.innerText=e.message;
+    }
+  });
+
+  function generateCode(length=6){
+    let c="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",o="";
+    for(let i=0;i<length;i++) o+=c[Math.floor(Math.random()*c.length)];
+    return o;
+  }
+
+  async function giveBonus(code){
+    let bonus=[2,1,0.5,0.2];
+    let sponsor=code;
+
+    for(let i=0;i<4;i++){
+      let snap=await db.collection("users").where("refCode","==",sponsor).get();
+      if(snap.empty) return;
+
+      let d=snap.docs[0],uid=d.id;
+      let data=d.data(),lb=data.levelBonus;
+      lb[i+1]+=bonus[i];
+      await db.collection("users").doc(uid).update({levelBonus:lb});
+
+      sponsor=data.sponsor;
+      if(!sponsor) break;
+    }
+  }
+</script>
+
 </body>
 </html>
