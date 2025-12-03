@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>MLM Signup</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h2>MLM Signup Form</h2>
+  <form id="signupForm">
+    <input type="text" id="name" placeholder="Full Name" required><br>
+    <input type="email" id="email" placeholder="Email" required><br>
+    <input type="text" id="mobile" placeholder="Mobile" required><br>
+    <input type="text" id="sponsor" placeholder="Sponsor ID"><br>
+    <button type="submit">Sign Up</button>
+  </form>
+
+  <p id="msg"></p>
+
+  <script>
+    // 🔹 Firebase Config (Tumhare Project ke hisab se replace karo)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // 🔹 Form Submit
+    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const mobile = document.getElementById("mobile").value;
+      const sponsor = document.getElementById("sponsor").value;
+
+      try {
+        // Create User Auth
+        const userCred = await auth.createUserWithEmailAndPassword(email, "123456"); // default password
+        const uid = userCred.user.uid;
+
+        // Save User Data in Firestore
+        await db.collection("users").doc(uid).set({
+          name, email, mobile, sponsor, uid, joinDate: new Date().toISOString()
+        });
+
+        document.getElementById("msg").innerText = "Signup Successful! Your UID: " + uid;
+        document.getElementById("signupForm").reset();
+      } catch (err) {
+        document.getElementById("msg").innerText = "Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
