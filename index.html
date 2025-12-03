@@ -1,115 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Brajesh Network Signup</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Brajesh Network Signup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-  body{font-family:Arial;background:#111;color:#fff;text-align:center;padding:20px;}
-  .box{background:#1d1d1d;padding:20px;border-radius:10px;max-width:350px;margin:auto;}
-  input{width:90%;padding:10px;margin:6px;border-radius:5px;border:none;}
-  button{background:#ff9800;color:#000;padding:12px;border:none;width:95%;
-      border-radius:6px;font-size:18px;font-weight:bold;margin-top:10px;}
-  #msg{margin-top:10px;font-size:15px;color:#00ff90;}
+  body{background:#0f1320;color:#fff;font-family:sans-serif;padding:20px;}
+  .box{max-width:420px;margin:auto;background:#1d2233;padding:20px;border-radius:10px;}
+  input,button{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:none;}
+  input{background:#2b3045;color:#fff;}
+  button{background:#ffb454;font-weight:bold;}
+  .msg{margin-top:10px;color:#7dffb0;}
+  .err{margin-top:10px;color:#ff6b6b;}
 </style>
 </head>
-
 <body>
 
-<h2>🔥 Brajesh Network Signup</h2>
-
 <div class="box">
-  <form id="signupForm">
-    <input id="name" type="text" placeholder="Full Name" required>
-    <input id="email" type="email" placeholder="Email Address" required>
-    <input id="mobile" type="text" placeholder="Mobile Number" required>
-    <input id="sponsor" type="text" placeholder="Sponsor Referral Code (Optional)">
-    <button type="submit">Nice Continue</button>
-  </form>
+  <h2>🔥 Brajesh Network Signup</h2>
 
-  <p id="msg"></p>
+  <input id="name" placeholder="Full Name">
+  <input id="email" placeholder="Email">
+  <input id="mobile" placeholder="Mobile Number">
+  <input id="sponsor" placeholder="Sponsor Code (optional)">
+  <button onclick="signup()">Nice Continue</button>
+
+  <p id="msg" class="msg"></p>
+  <p id="err" class="err"></p>
 </div>
 
-<!--  Firebase SDK CDN  -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
-<script>
-  // Your Firebase Config
-  const firebaseConfig = {
+
+<!-- ================= FIREBASE SETUP (tumne diya woh hi use) ================= -->
+<script type="module">
+
+import { initializeApp } 
+  from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getFirestore, doc, setDoc } 
+  from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword } 
+  from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+const firebaseConfig = {
     apiKey: "AIzaSyATpuhDoP366I8e7XPcuphtfVdN0ucz69w",
     authDomain: "brajeshnetwork-f21c8.firebaseapp.com",
     projectId: "brajeshnetwork-f21c8",
     storageBucket: "brajeshnetwork-f21c8.firebasestorage.app",
     messagingSenderId: "1053315949596",
     appId: "1:1053315949596:web:7bbe45427cf6f29520abd9"
-  };
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+// Start Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 
-  // 🎉 Signup + Referral + Level Bonus
-  document.getElementById("signupForm").addEventListener("submit", async (e)=>{
-    e.preventDefault();
-    
-    const name = nameInput.value;
-    const email = emailInput.value;
-    const mobile = mobileInput.value;
-    const sponsor = sponsorInput.value;
+
+// ================= SIGNUP FUNCTION =================
+async function signup(){
+    const name=document.getElementById("name").value;
+    const email=document.getElementById("email").value;
+    const mobile=document.getElementById("mobile").value;
+    const sponsor=document.getElementById("sponsor").value;
+
+    msg.innerHTML=""; err.innerHTML="";
+
+    if(!name||!email||!mobile){err.innerHTML="Fill required fields";return;}
 
     try{
-      // Create user (password auto fixed 123456)
-      let user = await auth.createUserWithEmailAndPassword(email,"123456");
-      let uid = user.user.uid;
+        const user=await createUserWithEmailAndPassword(auth,email,"TempPass@123");
+        const uid=user.user.uid;
+        const referral = Math.random().toString(36).substring(2,8).toUpperCase();
 
-      // Generate referral code
-      let refCode = generateCode();
+        await setDoc(doc(db,"users",uid),{
+          name,email,mobile,
+          sponsor:sponsor||null,
+          referralCode:referral,
+          wallet:0,
+          levelBonus:{1:0,2:0,3:0,4:0},
+          joinedAt: new Date()
+        });
 
-      // Save user to DB
-      await db.collection("users").doc(uid).set({
-        name,email,mobile,sponsor,refCode,uid,
-        levelBonus:{1:0,2:0,3:0,4:0},
-        joined:new Date()
-      });
+        msg.innerHTML="Signup success! Your referral code: "+referral;
 
-      // Bonus distribution
-      if(sponsor) await giveBonus(sponsor);
-
-      msg.innerText="Signup Success! Your Referral Code: "+refCode;
-      signupForm.reset();
-
-    }catch(e){
-      msg.innerText=e.message;
-    }
-  });
-
-  function generateCode(length=6){
-    let c="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",o="";
-    for(let i=0;i<length;i++) o+=c[Math.floor(Math.random()*c.length)];
-    return o;
-  }
-
-  async function giveBonus(code){
-    let bonus=[2,1,0.5,0.2];
-    let sponsor=code;
-
-    for(let i=0;i<4;i++){
-      let snap=await db.collection("users").where("refCode","==",sponsor).get();
-      if(snap.empty) return;
-
-      let d=snap.docs[0],uid=d.id;
-      let data=d.data(),lb=data.levelBonus;
-      lb[i+1]+=bonus[i];
-      await db.collection("users").doc(uid).update({levelBonus:lb});
-
-      sponsor=data.sponsor;
-      if(!sponsor) break;
-    }
-  }
+    }catch(e){ err.innerHTML=e.message;}
+}
 </script>
-
 </body>
 </html>
