@@ -10,6 +10,7 @@ button{padding:10px;background:#28a745;color:white;border:none;border-radius:6px
 button:hover{opacity:.8;}
 h2,h3{margin:10px 0;}
 p{margin:5px 0;}
+ul{list-style-type:circle;padding-left:20px;}
 </style>
 </head>
 <body>
@@ -18,8 +19,10 @@ p{margin:5px 0;}
 <h2>Welcome, <span id="userName">User</span></h2>
 <p>Wallet Balance: <span id="wallet">0 USDT</span></p>
 <button onclick="joinPlan()">Join 10 USDT Plan</button>
+
 <h3>Your Team:</h3>
 <ul id="teamList"></ul>
+
 <h3>Your Referral Link:</h3>
 <p id="refLink"></p>
 </div>
@@ -29,6 +32,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
+// 🔹 Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyATpuhDoP366I8e7XPcuphtfVdN0ucz69w",
     authDomain: "brajeshnetwork-f21c8.firebaseapp.com",
@@ -42,6 +46,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// 🔹 Load Dashboard Data
 onAuthStateChanged(auth, async(user)=>{
  if(user){
    const docRef = doc(db,"users",user.uid);
@@ -69,6 +74,7 @@ onAuthStateChanged(auth, async(user)=>{
  }
 });
 
+// 🔹 Join 10 USDT Plan + Level Bonus Logic
 async function joinPlan(){
  const user = auth.currentUser;
  if(!user){alert("Login first!");return;}
@@ -80,9 +86,26 @@ async function joinPlan(){
      alert("Already joined the plan!");
      return;
    }
+
+   // Update user's wallet & joined status
    await updateDoc(docRef,{joined:true,wallet: data.wallet + 10});
    alert("Joined 10 USDT plan successfully! Wallet updated.");
    document.getElementById("wallet").innerText = data.wallet + 10 + " USDT";
+
+   // MLM Level Bonus Logic
+   let bonus = [2,1,0.5,0.2]; // Level1->2, Level2->1, Level3->0.5, Level4->0.2 USDT
+   let sponsorUID = data.sponsor;
+   for(let i=0;i<bonus.length;i++){
+     if(!sponsorUID) break;
+     const sponsorRef = doc(db,"users",sponsorUID);
+     const sponsorSnap = await getDoc(sponsorRef);
+     if(sponsorSnap.exists()){
+       const sponsorData = sponsorSnap.data();
+       const newWallet = (sponsorData.wallet || 0) + bonus[i];
+       await updateDoc(sponsorRef,{wallet: newWallet});
+       sponsorUID = sponsorData.sponsor; // next level
+     } else { break; }
+   }
  }
 }
 </script>
